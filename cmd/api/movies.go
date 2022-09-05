@@ -31,7 +31,7 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		Version:   2302,
 	}
 
-	app.writeJSON(w, http.StatusOK, movie, nil)
+	app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
 
 	// write message into the response
 	fmt.Fprintf(w, "show details of the movie: %d", id)

@@ -9,6 +9,9 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
+// envelope type for wrapping json response
+type envelope map[string]any
+
 func (app *application) readIDParam(r *http.Request) (int64, error) {
 	// return slice with parameter names and values
 	params := httprouter.ParamsFromContext(r.Context())
@@ -23,7 +26,7 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 }
 
 func (app *application) writeJSON(w http.ResponseWriter, status int, data any, headers http.Header) error {
-	js, err := json.MarshalIndent(data, "", "\t")
+	js, err := json.MarshalIndent(data, "", "  ")
 
 	if err != nil {
 		return err
