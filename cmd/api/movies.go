@@ -14,15 +14,15 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := app.readIDParam(r)
+	id, err := app.readIDParam(r)
 
 	if err != nil {
-		http.NotFound(w, r)
+		app.notFoundResponse(w, r)
 		return
 	}
 
 	movie := data.Movie{
-		ID:        100,
+		ID:        id,
 		CreatedAt: time.Now(),
 		Title:     "the party is over",
 		Year:      2003,
@@ -31,5 +31,8 @@ func (app *application) showMovieHandler(w http.ResponseWriter, r *http.Request)
 		Version:   2302,
 	}
 
-	app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
+	err = app.writeJSON(w, http.StatusOK, envelope{"movie": movie}, nil)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
 }
