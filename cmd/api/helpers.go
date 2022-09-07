@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -28,8 +29,16 @@ func (app *application) readIDParam(r *http.Request) (int64, error) {
 }
 
 func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any) error {
+	// sets the max size of the body as 1Mb
+	maxBytes := 1_048_576
+	r.Body = http.MaxBytesReader(w, r.Body, int64(maxBytes))
+
+	dec := json.NewDecoder(r.Body)
+	// if there are unknownn fields, returns an error
+	dec.DisallowUnknownFields()
+
 	// decode json body into the target destination
-	err := json.NewDecoder(r.Body).Decode(dst)
+	err := dec.Decode(dst)
 	if err != nil {
 		var syntaxError *json.SyntaxError
 		var unmarshalTypeError *json.UnmarshalTypeError
@@ -55,6 +64,14 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 		case errors.Is(err, io.EOF):
 			return errors.New("body must not be empty")
 
+			// if the body json has more than the expected fields
+		case strings.HasPrefix(err.Error(), "json: unknownn field"):
+			fieldName := strings.TrimPrefix(err.Error(), "json: unknownn field")
+			return fmt.Errorf("body contains unknown key %s", fieldName)
+
+		case err.Error() == "http: request body too large":
+			return fmt.Errorf("body must be not larger than %d bytes", maxBytes)
+
 		case errors.As(err, &invalidUnmarshalError):
 			// it's fine to panic here, cuz if that error occured, probably it's an error from the developer
 			// so, it makes sense to catch it and stop the application as soon as possible
@@ -64,6 +81,12 @@ func (app *application) readJSON(w http.ResponseWriter, r *http.Request, dst any
 			return err
 		}
 	}
+
+	err = dec.Decode(&struct{}{})
+	if err != io.EOF {
+		return errors.New("body must contain only a single JSON value")
+	}
+
 	return nil
 }
 
