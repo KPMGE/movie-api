@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"movie.api.kpmge/internal/data"
+	"movie.api.kpmge/internal/validator"
 )
 
 func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Request) {
@@ -19,6 +20,24 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 	err := app.readJSON(w, r, &input)
 	if err != nil {
 		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	v := validator.New()
+
+	v.Check(input.Title != "", "title", "must be provided")
+	v.Check(len(input.Title) < 500, "title", "must be less than 500 bytes")
+	v.Check(input.Year != 0, "year", "year must be provided")
+	v.Check(input.Year <= int32(time.Now().Year()), "year", "year must not be in the future")
+	v.Check(input.Runtime != 0, "runtime", "runtime must be provided")
+	v.Check(input.Runtime > 0, "runtime", "runtime must be a positive integer")
+	v.Check(input.Genres != nil, "genres", "must be provided")
+	v.Check(len(input.Genres) >= 1, "genres", "must contain at least 1 genre")
+	v.Check(len(input.Genres) <= 10, "genres", "must not contain more than 10 genres")
+	v.Check(validator.Unique(input.Genres), "genres", "must not contain duplicate genres")
+
+	if !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
 
