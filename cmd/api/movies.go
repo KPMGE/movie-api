@@ -23,20 +23,20 @@ func (app *application) createMovieHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// copy fields of input to a movie struct
+	movie := &data.Movie{
+		Title:   input.Title,
+		Year:    input.Year,
+		Runtime: input.Runtime,
+		Genres:  input.Genres,
+	}
+
+	// create a new validator
 	v := validator.New()
+	data.ValidateMovie(v, movie)
 
-	v.Check(input.Title != "", "title", "must be provided")
-	v.Check(len(input.Title) < 500, "title", "must be less than 500 bytes")
-	v.Check(input.Year != 0, "year", "year must be provided")
-	v.Check(input.Year <= int32(time.Now().Year()), "year", "year must not be in the future")
-	v.Check(input.Runtime != 0, "runtime", "runtime must be provided")
-	v.Check(input.Runtime > 0, "runtime", "runtime must be a positive integer")
-	v.Check(input.Genres != nil, "genres", "must be provided")
-	v.Check(len(input.Genres) >= 1, "genres", "must contain at least 1 genre")
-	v.Check(len(input.Genres) <= 10, "genres", "must not contain more than 10 genres")
-	v.Check(validator.Unique(input.Genres), "genres", "must not contain duplicate genres")
-
-	if !v.Valid() {
+	// validate movie
+	if data.ValidateMovie(v, movie); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
