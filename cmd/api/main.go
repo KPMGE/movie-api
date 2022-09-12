@@ -5,11 +5,13 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
-	_ "github.com/lib/pq"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	_ "github.com/lib/pq"
+	"movie.api.kpmge/internal/data"
 )
 
 const version = "1.0.0"
@@ -28,6 +30,7 @@ type config struct {
 type application struct {
 	config config
 	logger *log.Logger
+	models *data.Models
 }
 
 func openDB(cf config) (*sql.DB, error) {
@@ -77,13 +80,14 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	fmt.Println("database connected!")
+	logger.Println("database connected!")
 
 	defer db.Close()
 
 	app := &application{
 		config: conf,
 		logger: logger,
+		models: data.NewModels(db),
 	}
 
 	srv := &http.Server{
